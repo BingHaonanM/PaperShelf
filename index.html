@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PaperShelf · 多主题文献管理</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-icon">P</span><span><strong>PaperShelf</strong><small>多主题分库 · PDF 阅读 · Markdown 笔记</small></span></div>
+    <div class="top-actions">
+      <span class="local-hint">● 数据仅存储在本机</span>
+      <button id="open-import" type="button" class="btn primary">导入 BibTeX</button>
+    </div>
+  </header>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="section-top library-heading">
+        <h2>主题文献库</h2>
+        <button id="new-library-btn" type="button" class="small-link">＋ 新建库</button>
+      </div>
+      <div id="library-list" class="library-list" aria-label="主题文献库列表"></div>
+      <div class="section-top result-heading">
+        <h2 id="active-library-name">全部文献</h2>
+        <span class="muted" id="count">0 篇</span>
+      </div>
+      <button id="rename-library-btn" type="button" class="small-link library-rename hidden">重命名当前文献库</button>
+      <input id="search" class="input" placeholder="搜索标题、作者、期刊、标签" autocomplete="off">
+      <div class="filter-row">
+        <select id="status-filter" class="input" aria-label="阅读状态"><option value="">全部状态</option><option>未读</option><option>在读</option><option>已读</option></select>
+        <select id="year-filter" class="input" aria-label="发表年份"><option value="">全部年份</option></select>
+      </div>
+      <div id="paper-list" class="paper-list"></div>
+    </aside>
+    <main class="reader">
+      <div id="empty" class="empty-state">
+        <div class="empty-icon">📚</div>
+        <h2>从一个主题文献库开始</h2>
+        <p>先新建一个主题文献库，例如 LLM、NN 或 Machine Learning，也可以在导入 BibTeX 时创建新库。</p>
+        <p>随后可搜索论文、关联本地 PDF，并为每篇论文保存独立的 Markdown 阅读笔记。</p>
+      </div>
+      <div id="detail" class="hidden">
+        <section class="detail-header">
+          <p class="eyebrow" id="paper-meta"></p>
+          <h1 id="paper-title"></h1>
+          <p id="paper-authors" class="muted"></p>
+          <p id="paper-journal" class="muted"></p>
+          <div class="chips">
+            <label>阅读状态 <select id="paper-status" class="compact"><option>未读</option><option>在读</option><option>已读</option></select></label>
+            <label>所属文献库 <select id="paper-library" class="compact" aria-label="将文献移动至其他文献库"></select></label>
+            <a id="paper-doi" class="btn subtle" target="_blank" rel="noopener noreferrer">打开 DOI ↗</a>
+            <label class="btn subtle">关联 PDF<input id="pdf-upload" type="file" accept=".pdf,application/pdf" hidden></label>
+          </div>
+          <label for="tags" class="field-label">标签（用逗号分隔）</label>
+          <input id="tags" class="input" placeholder="例如：LLM, NN, Machine Learning">
+        </section>
+        <section class="pdf-zone">
+          <div class="pdf-toolbar"><strong>PDF 阅读</strong><div><span id="pdf-label" class="muted"></span><a id="pdf-open" target="_blank" rel="noopener noreferrer" class="minor-link hidden">新窗口打开 ↗</a></div></div>
+          <iframe id="pdf-frame" title="PDF 阅读器" class="hidden"></iframe>
+          <div id="no-pdf" class="pdf-placeholder">尚未关联 PDF。点击上方「关联 PDF」选择本地文件；也可以点击 DOI 进入出版商页面。</div>
+        </section>
+      </div>
+    </main>
+    <aside class="notes-panel">
+      <div class="section-top"><h2>阅读笔记</h2><span id="save-state" class="muted">未选择论文</span></div>
+      <div class="note-actions"><button type="button" class="tab active" id="edit-tab">编辑 Markdown</button><button type="button" class="tab" id="preview-tab">预览</button><button type="button" class="btn tiny" id="template-btn">插入模板</button></div>
+      <textarea id="note-editor" spellcheck="false" placeholder="选择一篇论文后开始记录。笔记会自动保存为独立的 .md 文件。" disabled></textarea>
+      <div id="note-preview" class="note-preview hidden"></div>
+      <p class="note-footer">自动保存至 <code>data/notes/</code> · 不同库的笔记彼此独立</p>
+    </aside>
+  </div>
+
+  <dialog id="import-dialog" class="modal-dialog" aria-labelledby="import-title">
+    <form id="import-form">
+      <h2 id="import-title">导入 BibTeX</h2>
+      <p class="modal-hint">请选择目标文献库，也可以直接新建库，例如 LLM 或 NN。同一篇论文在不同库中拥有独立的阅读状态和笔记。</p>
+      <label class="form-label" for="import-library">导入到</label>
+      <select id="import-library" class="input" required></select>
+      <div id="new-import-library-row" class="hidden">
+        <label class="form-label" for="import-new-library">新文献库名称</label>
+        <input id="import-new-library" class="input" maxlength="60" placeholder="例如：LLM">
+      </div>
+      <label class="form-label" for="bib-upload">选择 BibTeX 文件 (.bib)</label>
+      <input id="bib-upload" class="input file-input" type="file" accept=".bib,.txt,text/plain" required>
+      <div class="modal-actions">
+        <button type="button" class="btn subtle" id="cancel-import">取消</button>
+        <button type="submit" class="btn primary" id="import-submit">导入文献</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="library-dialog" class="modal-dialog" aria-labelledby="library-dialog-title">
+    <form id="library-form">
+      <h2 id="library-dialog-title">新建文献库</h2>
+      <p class="modal-hint">每个文献库对应一个主题，例如 LLM、NN 或 Machine Learning，可独立检索和管理阅读笔记。</p>
+      <label class="form-label" for="library-name">文献库名称</label>
+      <input id="library-name" class="input" required maxlength="60" placeholder="例如：Neural Networks">
+      <div class="modal-actions">
+        <button type="button" class="btn subtle" id="cancel-library">取消</button>
+        <button type="submit" class="btn primary" id="library-submit">创建文献库</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
